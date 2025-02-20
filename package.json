@@ -1,0 +1,27 @@
+{
+  "name": "@ticatec/axios-restful-service",
+  "version": "0.1.1",
+  "description": "restful api library which is based on axios.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "clean": "rm -rf ./dist",
+    "build": "tsc && cp ./package.json ./dist/",
+    "publish:public": "cd ./dist && npm publish --access public"
+  },
+  "keywords": [
+    "restful",
+    "axios",
+    "httpclient",
+    "get",
+    "post",
+    "put",
+    "delete",
+    "api"
+  ],
+  "author": "Henry Feng",
+  "license": "MIT",
+  "devDependencies": {
+    "axios": "^1.7.9"
+  }
+}
