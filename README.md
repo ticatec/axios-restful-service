@@ -1,5 +1,7 @@
 # RestService
 
+[中文文档]('./README_CN.md)
+
 This is a REST service class based on Axios, designed to simplify the handling of HTTP requests. It encapsulates common HTTP methods such as GET, POST, PUT, DELETE, upload, and download, while supporting request and response interceptors as well as error handling.
 
 ## Features
