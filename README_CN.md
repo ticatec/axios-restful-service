@@ -163,7 +163,7 @@ restService.download('/download', 'file.txt', { id: 1 }).then(() => {
 
 ## 依赖
 
-* axios
+* [axios](https://www.npmjs.com/package/axios)
 
 ## 贡献
 
