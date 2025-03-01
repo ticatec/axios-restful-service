@@ -1,5 +1,7 @@
 # RestService
 
+[English](./README.md)
+
 这是一个基于 Axios 的 REST 服务类，用于简化 HTTP 请求的处理。它提供了 GET、POST、PUT、DELETE、上传和下载等常见 HTTP 方法的封装，并支持请求前后的拦截器和错误处理。
 
 ## 特性
