@@ -1,7 +1,7 @@
 {
   "name": "@ticatec/axios-restful-service",
-  "version": "0.1.1",
-  "description": "restful api library which is based on axios.",
+  "version": "0.1.2",
+  "description": "This is a REST service class based on Axios, designed to simplify the handling of HTTP requests. It encapsulates common HTTP methods such as GET, POST, PUT, DELETE, upload, and download, while supporting request and response interceptors as well as error handling.",
   "main": "index.js",
   "types": "index.d.ts",
   "scripts": {
@@ -19,6 +19,14 @@
     "delete",
     "api"
   ],
+  "repository": {
+    "type": "https",
+    "url": "https://github.com/henryfeng/axios-restful-service.git"
+  },
+  "bugs": {
+    "url": "https://github.com/henryfeng/axios-restful-service/issues"
+  },
+  "homepage": "https://github.com/henryfeng/axios-restful-service",
   "author": "Henry Feng",
   "license": "MIT",
   "devDependencies": {
