@@ -56,9 +56,11 @@ export default class RestService {
             method: method.toLowerCase(),
             url: `${this.root}${url}`,
             params,
-            data,
             withCredentials: true,
             headers: {}
+        }
+        if (data) {
+            options.data = data
         }
         if (isFormData != true) {
             options.headers[CONTENT_TYPE_NAME] = TYPE_JSON;
@@ -105,9 +107,7 @@ export default class RestService {
             ex = this.handleException(reason);
         }
         if (ex != null) {
-            if (this.errorHandler != null) {
-                this.errorHandler(ex);
-            }
+            this.errorHandler?.(ex);
             throw ex;
         }
     }
@@ -285,11 +285,16 @@ export default class RestService {
     }
 
 
-    private handleException(reason) {
-        let response = reason.response!;
+    private handleException(reason: any) {
+        let response: any = reason.response;
         if (response) {
             console.debug(response);
-            return new ApiError(reason.response!.status, this.parseResponseData(response.data, response[CONTENT_TYPE_NAME]));
+            let data: any = this.parseResponseData(response.data, response.request?.responseType);
+            if (data == null || typeof data == "string") {
+                data = {message: response.statusText}
+            }
+            data.code = data.code || data.code < 0 ? response.status : data.code;
+            return new ApiError(response.status, data);
         } else {
             console.error("Failure:", reason);
             return new ApiError(-1, {code: 100});
