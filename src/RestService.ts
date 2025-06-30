@@ -16,7 +16,7 @@ export interface PreInterceptorResult {
 
 export type DataProcessor = (data: any) => any;
 export type PreInterceptor = (method: string, url: string) => PreInterceptorResult;
-export type PostInterceptor = (data: any) => Promise<void>;
+export type PostInterceptor = (data: any) => Promise<any>;
 export type ErrorHandler = (ex: Error) => boolean;
 
 const CONTENT_TYPE_NAME = 'Content-Type';
@@ -236,11 +236,13 @@ export default class RestService {
     async download(url: string, filename: string, params: any, method: string = 'get', formData: any): Promise<any> {
         RestService.debug && console.debug("发送GET请求到" + url, "参数：", (params || '无'));
         let axiosConf = this.buildAxiosRequest(url, method, params, formData, true);
+        axiosConf.responseType = 'blob';
         let ex: any;
         try {
             let response: any = await axios(axiosConf);
             let a = document.createElement("a");
-            a.href = window.URL.createObjectURL(response.data);
+            const blob = new Blob([response.data], { type: response.headers['content-type'] });
+            a.href = window.URL.createObjectURL(blob);
             a.download = filename;
             a.click();
         } catch (reason) {
