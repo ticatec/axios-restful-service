@@ -1,0 +1,5 @@
+**/src
+**/lib/test
+package-lock.json
+/.idea/
+/node_modules/

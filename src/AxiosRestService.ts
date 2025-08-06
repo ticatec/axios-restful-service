@@ -1,37 +1,40 @@
-import ApiError from "./ApiError";
+import {ApiError, UploadCallback, UploadProgress} from "@ticatec/restful_service_api";
 import axios from "axios";
-import UploadCallback, {UploadProgress} from "./UploadCallback";
+import RestService from "@ticatec/restful_service_api";
+import type {PreInterceptor, DataProcessor, PostInterceptor, ErrorHandler} from "@ticatec/restful_service_api";
+import type {PreInterceptorResult} from "@ticatec/restful_service_api"
 
+import {TYPE_JSON, TYPE_HTML} from "@ticatec/restful_service_api";
 const TIMEOUT = 60 * 1000; //一分钟
-export interface PreInterceptorResult {
-    /**
-     * 待增加的headers
-     */
-    headers: any;
-    /**
-     * 访问过期时间
-     */
-    timeout?: number;
-}
-
-export type DataProcessor = (data: any) => any;
-export type PreInterceptor = (method: string, url: string) => PreInterceptorResult;
-export type PostInterceptor = (data: any) => Promise<any>;
-export type ErrorHandler = (ex: Error) => boolean;
 
 const CONTENT_TYPE_NAME = 'Content-Type';
-const TYPE_JSON = "application/json";
-const TYPE_HTML = "text/html";
-const TYPE_TEXT = "text/plain"
 
-export default class RestService {
+/**
+ * AxiosRestService - A REST service implementation based on Axios
+ * 
+ * This class provides a comprehensive REST client that wraps Axios functionality
+ * with additional features like interceptors, error handling, and file operations.
+ */
+export default class AxiosRestService implements RestService {
 
     private static debug: boolean = false;
-    private readonly root;
+    
+    private readonly root: string;
+    
     private readonly preInvoke: PreInterceptor;
+    
     private readonly postInvoke: PostInterceptor;
+    
     private readonly errorHandler: ErrorHandler;
 
+    /**
+     * Creates a new AxiosRestService instance
+     * 
+     * @param root - Base URL for all API requests (e.g., 'https://api.example.com')
+     * @param errorHandler - Optional error handler function called when API errors occur
+     * @param preInvoke - Optional pre-request interceptor to modify requests before sending
+     * @param postInvoke - Optional post-response interceptor to process responses after receiving
+     */
     constructor(root: string, errorHandler: ErrorHandler = null, preInvoke: PreInterceptor = null, postInvoke: PostInterceptor = null) {
         this.root = root;
         this.errorHandler = errorHandler;
@@ -39,17 +42,24 @@ export default class RestService {
         this.postInvoke = postInvoke;
     }
 
+    /**
+     * Enables or disables debug mode for request/response logging
+     * 
+     * @param value - True to enable debug logging, false to disable
+     */
     static setDebug(value: boolean): void {
-        RestService.debug = value;
+        AxiosRestService.debug = value;
     }
 
     /**
-     * 构建Web Request请求
-     * @param url
-     * @param method
-     * @param params
-     * @param data
-     * @param contentType
+     * Builds an Axios request configuration object
+     * 
+     * @param url - The API endpoint URL (relative to the base URL)
+     * @param method - HTTP method (GET, POST, PUT, DELETE, etc.)
+     * @param params - Query parameters to append to the URL
+     * @param data - Request body data (for POST, PUT, etc.)
+     * @param contentType - Content-Type header value
+     * @returns Axios request configuration object
      * @protected
      */
     protected buildAxiosRequest(url: string, method: string, params: any, data: any = null, contentType: string = TYPE_JSON): any {
@@ -68,6 +78,14 @@ export default class RestService {
         return options;
     }
 
+    /**
+     * Parses response data based on content type
+     * 
+     * @param data - Raw response data
+     * @param contentType - Response content type
+     * @returns Parsed response data
+     * @protected
+     */
     protected parseResponseData(data: any, contentType: string): any {
         if (typeof data == 'string') {
             data = data.trim();
@@ -79,9 +97,12 @@ export default class RestService {
     }
 
     /**
-     * 发起一个http请求
-     * @param axiosConf
-     * @param dataProcessor
+     * Executes an HTTP request using Axios and processes the response
+     * 
+     * @param axiosConf - Axios configuration object
+     * @param dataProcessor - Optional function to process response data
+     * @returns Promise resolving to processed response data
+     * @throws {ApiError} When request fails or server returns an error
      * @protected
      */
     protected async fetchData(axiosConf: any, dataProcessor: DataProcessor): Promise<any> {
@@ -92,7 +113,7 @@ export default class RestService {
             if (response.status < 300) {
                 if (dataProcessor) {
                     data = dataProcessor(data);
-                    RestService.debug && console.debug("处理后的数据：", data);
+                    AxiosRestService.debug && console.debug("处理后的数据：", data);
                 }
                 if (this.postInvoke) {
                     data = await this.postInvoke(data);
@@ -111,70 +132,84 @@ export default class RestService {
     }
 
     /**
-     *
-     * @param url
-     * @param params
-     * @param dataProcessor
+     * Performs a GET request
+     * 
+     * @param url - The API endpoint URL (relative to the base URL)
+     * @param params - Optional query parameters
+     * @param dataProcessor - Optional function to process response data
+     * @returns Promise resolving to the response data
+     * @throws {ApiError} When request fails or server returns an error
      */
     async get(url: string, params: any = null, dataProcessor: DataProcessor = null): Promise<any> {
         const axiosConf = this.buildAxiosRequest(url, 'GET', params);
-        RestService.debug && console.debug("发送GET请求到", axiosConf);
+        AxiosRestService.debug && console.debug("发送GET请求到", axiosConf);
         return await this.fetchData(axiosConf, dataProcessor);
     }
 
     /**
-     *
-     * @param url
-     * @param data
-     * @param params
-     * @param contentType
-     * @param dataProcessor
+     * Performs a POST request
+     * 
+     * @param url - The API endpoint URL (relative to the base URL)
+     * @param data - Request body data
+     * @param params - Optional query parameters
+     * @param contentType - Content-Type header value (defaults to 'application/json')
+     * @param dataProcessor - Optional function to process response data
+     * @returns Promise resolving to the response data
+     * @throws {ApiError} When request fails or server returns an error
      */
     async post(url: string, data: any, params: any = null, contentType: string = TYPE_JSON, dataProcessor: DataProcessor = null): Promise<any> {
         const axiosConf = this.buildAxiosRequest(url, 'POST', params, data, contentType);
-        RestService.debug && console.debug("发送POST请求到", axiosConf);
+        AxiosRestService.debug && console.debug("发送POST请求到", axiosConf);
         return await this.fetchData(axiosConf, dataProcessor);
     }
 
     /**
-     *
-     * @param url
-     * @param data
-     * @param params
-     * @param contentType
-     * @param dataProcessor
+     * Performs a PUT request
+     * 
+     * @param url - The API endpoint URL (relative to the base URL)
+     * @param data - Request body data
+     * @param params - Optional query parameters
+     * @param contentType - Content-Type header value (defaults to 'application/json')
+     * @param dataProcessor - Optional function to process response data
+     * @returns Promise resolving to the response data
+     * @throws {ApiError} When request fails or server returns an error
      */
     async put(url: string, data: any, params: any = null, contentType: string = TYPE_JSON, dataProcessor: DataProcessor = null): Promise<any> {
         const axiosConf = this.buildAxiosRequest(url, 'PUT', params, data, contentType);
-        RestService.debug && console.debug("发送PUT请求到", axiosConf);
+        AxiosRestService.debug && console.debug("发送PUT请求到", axiosConf);
         return await this.fetchData(axiosConf, dataProcessor);
     }
 
     /**
-     *
-     * @param url
-     * @param data
-     * @param params
-     * @param contentType
-     * @param dataProcessor
+     * Performs a DELETE request
+     * 
+     * @param url - The API endpoint URL (relative to the base URL)
+     * @param data - Optional request body data
+     * @param params - Optional query parameters
+     * @param contentType - Content-Type header value (defaults to 'application/json')
+     * @param dataProcessor - Optional function to process response data
+     * @returns Promise resolving to the response data
+     * @throws {ApiError} When request fails or server returns an error
      */
     async del(url: string, data: any, params: any = null, contentType: string = TYPE_JSON, dataProcessor: DataProcessor = null): Promise<any> {
         const axiosConf = this.buildAxiosRequest(url, 'DELETE', params, data, contentType);
-        RestService.debug && console.debug("发送DELETE请求到", axiosConf);
+        AxiosRestService.debug && console.debug("发送DELETE请求到", axiosConf);
         return await this.fetchData(axiosConf, dataProcessor);
     }
 
     /**
-     * 上传单个文件
-     * @param url
-     * @param params
-     * @param file
-     * @param fileKey
-     * @param dataProcessor
-     * @returns {Promise<*|string|null|undefined>}
+     * Uploads a single file to the server
+     * 
+     * @param url - The API endpoint URL for file upload
+     * @param params - Optional query parameters
+     * @param file - The File object to upload
+     * @param fileKey - The form field name for the file (defaults to 'filename')
+     * @param dataProcessor - Optional function to process response data
+     * @returns Promise resolving to the upload response data
+     * @throws {ApiError} When upload fails or server returns an error
      */
     async upload(url: string, params: any, file: File, fileKey: string = 'filename', dataProcessor: DataProcessor = null): Promise<any> {
-        RestService.debug && console.debug("上传文件" + file.name);
+        AxiosRestService.debug && console.debug("上传文件" + file.name);
         let formData = new FormData();
         formData.append(fileKey, file);
         const axiosConf = this.buildUploadOption(url, params);
@@ -183,12 +218,14 @@ export default class RestService {
     }
 
     /**
-     * 异步上传文件并且允许更新
-     * @param url
-     * @param params
-     * @param file
-     * @param callback
-     * @param fileKey
+     * Uploads a file asynchronously with progress tracking and cancellation support
+     * 
+     * @param url - The API endpoint URL for file upload
+     * @param params - Optional query parameters
+     * @param file - The File object to upload
+     * @param callback - Callback object for handling upload events (progress, completion, error)
+     * @param fileKey - The form field name for the file (defaults to 'filename')
+     * @returns Promise resolving to an UploadProgress object with cancel method
      */
     async asyncUpload(url: string, params: any, file: File, callback: UploadCallback, fileKey: string = 'filename'): Promise<UploadProgress> {
         const formData = new FormData();
@@ -217,15 +254,18 @@ export default class RestService {
     }
 
     /**
-     *
-     * @param url
-     * @param params
-     * @param filename
-     * @param method
-     * @param formData
+     * Downloads a file from the server and triggers browser download
+     * 
+     * @param url - The API endpoint URL for file download
+     * @param filename - The name to save the downloaded file as
+     * @param params - Optional query parameters
+     * @param method - HTTP method for the download request (defaults to 'get')
+     * @param formData - Optional form data for POST downloads
+     * @returns Promise that resolves when download completes
+     * @throws {ApiError} When download fails or server returns an error
      */
     async download(url: string, filename: string, params: any, method: string = 'get', formData: any): Promise<any> {
-        RestService.debug && console.debug("发送请求到" + url, "参数：", (params || '无'));
+        AxiosRestService.debug && console.debug("发送请求到" + url, "参数：", (params || '无'));
         let axiosConf = this.buildAxiosRequest(url, method, params, formData);
         axiosConf.responseType = 'blob';
 
@@ -247,6 +287,13 @@ export default class RestService {
         }
     };
 
+    /**
+     * Preprocesses request headers using the pre-interceptor
+     * 
+     * @param url - The request URL
+     * @param options - Axios request options to modify
+     * @protected
+     */
     protected preprocessHeaders(url: string, options: any) {
         let interceptorResult: PreInterceptorResult = this.preInvoke == null ? null : this.preInvoke(options.method, url);
         if (interceptorResult != null) {
@@ -260,9 +307,11 @@ export default class RestService {
     }
 
     /**
-     *
-     * @param url
-     * @param params
+     * Builds Axios configuration for file upload requests
+     * 
+     * @param url - The API endpoint URL for upload
+     * @param params - Query parameters
+     * @returns Axios configuration object for multipart/form-data upload
      * @protected
      */
     protected buildUploadOption(url: string, params: any): any {
@@ -280,8 +329,10 @@ export default class RestService {
     }
 
     /**
-     * 处理异常情况
-     * @param reason axios抛出的异常
+     * Handles and transforms Axios exceptions into ApiError objects
+     * 
+     * @param reason - The exception thrown by Axios
+     * @returns ApiError object with standardized error information
      * @private
      */
     private handleException(reason: any): ApiError {
@@ -291,7 +342,7 @@ export default class RestService {
             const status = response.status;
             const contentType = response.headers[CONTENT_TYPE_NAME] || response.headers['content-type'] || '';
 
-            RestService.debug && console.debug("HTTP错误响应:", {
+            AxiosRestService.debug && console.debug("HTTP错误响应:", {
                 status,
                 contentType,
                 data: response.data,
@@ -321,7 +372,7 @@ export default class RestService {
                 }
             } catch (parseError) {
                 // 解析失败，使用默认错误信息
-                RestService.debug && console.warn("解析错误响应失败:", parseError);
+                AxiosRestService.debug && console.warn("解析错误响应失败:", parseError);
                 errorData = {
                     code: status,
                     message: response.statusText,
@@ -347,7 +398,7 @@ export default class RestService {
                 errorCode = 105;
             }
 
-            RestService.debug && console.error("网络错误:", {
+            AxiosRestService.debug && console.error("网络错误:", {
                 code: reason.code,
                 message: reason.message
             });
@@ -361,10 +412,10 @@ export default class RestService {
 
         } else {
             // 请求配置错误
-            RestService.debug && console.error("请求配置错误:", reason.message);
+            AxiosRestService.debug && console.error("请求配置错误:", reason.message);
             return new ApiError(-1, {
                 code: 106,
-                message: "请求配置错误: " + reason.message,
+                message: "Configration error: " + reason.message,
                 configError: true,
                 originalMessage: reason.message
             });

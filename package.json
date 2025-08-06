@@ -1,13 +1,22 @@
 {
   "name": "@ticatec/axios-restful-service",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "This is a REST service class based on Axios, designed to simplify the handling of HTTP requests. It encapsulates common HTTP methods such as GET, POST, PUT, DELETE, upload, and download, while supporting request and response interceptors as well as error handling.",
-  "main": "index.js",
-  "types": "index.d.ts",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "scripts": {
-    "clean": "rm -rf ./dist",
-    "build": "tsc && cp ./package.json ./dist/",
-    "publish:public": "cp *.md ./dist && cd ./dist && npm publish --access public"
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "prepare": "npm run clean && npm run build",
+    "publish:public": "npm publish --access public"
   },
   "keywords": [
     "restful",
@@ -21,15 +30,16 @@
   ],
   "repository": {
     "type": "https",
-    "url": "https://github.com/henryfeng/axios-restful-service.git"
+    "url": "https://github.com/ticatec/axios-restful-service.git"
   },
   "bugs": {
-    "url": "https://github.com/henryfeng/axios-restful-service/issues"
+    "url": "https://github.com/ticatec/axios-restful-service/issues"
   },
-  "homepage": "https://github.com/henryfeng/axios-restful-service",
+  "homepage": "https://github.com/ticatec/axios-restful-service",
   "author": "Henry Feng",
   "license": "MIT",
   "devDependencies": {
+    "@ticatec/restful_service_api": "^0.1.5",
     "axios": "^1.11.0"
   }
 }
