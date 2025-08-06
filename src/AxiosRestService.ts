@@ -73,8 +73,8 @@ export default class AxiosRestService implements RestService {
         if (data) {
             options.data = data
         }
-        options.headers[CONTENT_TYPE_NAME] = options.headers ?? contentType;
         this.preprocessHeaders(url, options);
+        options.headers[CONTENT_TYPE_NAME] = options.headers[CONTENT_TYPE_NAME] ?? contentType;
         return options;
     }
 
